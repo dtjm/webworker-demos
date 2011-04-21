@@ -1,0 +1,60 @@
+<html>
+    <body>
+        <button id="start" onclick="manager.start();">Start</button>
+        <button id="stop" onclick="manager.stop();">Stop</button>
+    </body>
+    <script>
+        var p = function(id, text){
+            document.getElementById(id).innerText = text;
+        };
+
+        var onMessage = function(event) {
+            var newValue = manager.addValue(event.data.id, event.data.value);
+            var id = "worker" + event.data.id.toString();
+            p(id, newValue);
+        };
+
+        var manager = (function(){
+            var workers, numWorkers, i, values, counts, pre;
+
+            workers = [];
+            values = [];
+            counts = [];
+            numWorkers = 10;
+
+            for(i = 0; i < numWorkers; i++) {
+                workers[i] = new Worker("worker.js");
+                workers[i].onmessage = onMessage;
+                values[i] = 0;
+                counts[i] = 1;
+
+                pre = document.createElement("pre");
+                pre.setAttribute("id", "worker" + i);
+                document.body.appendChild(pre);
+            }
+
+            return {
+                addValue: function(id, value) {
+                    values[id] =
+                        ((values[id]*counts[id]) + value) /
+                        (counts[id]+1);
+                    counts[id] = counts[id] + 1;
+                    return values[id];
+                },
+                start: function() {
+                    var i;
+                    for(i = 0; i < numWorkers; i++) {
+                        workers[i].postMessage({id: i, start:true});
+                    }
+                },
+                stop: function() {
+                    var i;
+                    for(i = 0; i < numWorkers; i++) {
+                        workers[i].postMessage({stop: true});
+                    }
+                }
+            };
+        })();
+
+    </script>
+</html>
